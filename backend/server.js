@@ -62,10 +62,10 @@ app.post('/create-user', function (req, res) {
     //create a new entry in users table
     pool.query("insert into user_info(name,username,password,email) values($1, $2, $3, $4);", [name, userName, userPassword, email], function (err, result) {
         if (err)
-            res.status(500).send(err.toString());
+            res.status(500).send(JSON.stringify({message:err.toString()}));
 
         else
-            res.status(200).send('User created succesfully. Please Login to continue');
+            res.status(200).send(JSON.stringify({message:'User created successfully please login to continue'}));
     });
 });
 /*-------------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -80,11 +80,11 @@ app.post('/login', function (req, res) {
     if(!req.session.auth){
         pool.query("SELECT * FROM user_info WHERE username = $1", [userName], function (err, result){
            if (err)
-            res.status(500).send(err.toString());
+            res.status(500).send(JSON.stringify({message:err.toString()}));
 
            else {
             if (result.rows.length === 0)
-                res.status(404).send('Username not found');
+                res.status(404).send(JSON.stringify({message:'Username not found'}));
 
             else {
                 var actualPassPhrase = result.rows[0].password;
@@ -106,34 +106,34 @@ app.post('/login', function (req, res) {
                 }
 
                 else
-                    res.status(401).send("Incorrect password");
+                    res.status(401).send(JSON.stringify({message:'Incorrect password'}));
         }
         }
         });
     }
 
     else{
-        res.status(403).send(`You are already logged in as ${req.session.auth.userName} first logout then try logging in again`);
+        res.status(403).send(JSON.stringify({message:`You are already logged in as ${req.session.auth.userName} first logout then try logging in again`}));
     }
 
 });
 
 app.get('/login-check', function (req, res) {
     if(req.session.auth)
-        res.status(200).send(req.session.auth.userName);
+        res.status(200).send(JSON.stringify({userName:req.session.auth.userName}));
     else {
-        res.status(200).send('You are not logged in');
+        res.status(200).send(JSON.stringify({message:'You are not logged in'}));
     }
 });
 
 app.get('/logout', function (req, res) {
     if(req.session && req.session.auth && req.session.auth.userName){
         delete req.session.auth;
-    	res.status(200).send('Logged out succesfully');
+    	res.status(200).send(JSON.stringify({message:'Logged out successfully'}));
     }
 
     else
-        res.status(403).send('Forbidden request');
+        res.status(403).send(JSON.stringify({message:'Forbidden'}));
 });
 
 /*-------------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -147,7 +147,7 @@ app.get('/search', function(req, res){
     pool.query("SELECT name, username FROM user_info WHERE name= ($1);", [contact], function (err, result) {
 
         if (err) {
-            res.status(500).send(err.toString());
+            res.status(500).send(JSON.stringify({message:err.toString()}));
         }
 
         else {
@@ -176,7 +176,7 @@ app.get('/get-messages', function(req, res){
     pool.query("SELECT content, sender_id FROM message_cache WHERE receiver_id= ($1);", [id], function (err, result) {
 
         if (err) {
-            res.status(500).send(err.toString());
+            res.status(500).send(JSON.stringify({message:err.toString()}));
         }
 
         else {
@@ -215,11 +215,11 @@ app.post('/send-message', function(req,res){
     pool.query("insert into message_cache(content, sender_id, receiver_id) values($1, $2, $3) ;", [content, senderId, receiverId], function (err, result) {
 
         if (err) {
-            res.status(500).send(err.toString());
+            res.status(500).send(JSON.stringify({message:err.toString()}));
         }
 
         else {
-            res.status(200).send('message sent successfully');
+            res.status(200).send(JSON.stringify({message:'Message sent successfully'}));
         }
     });
 });
