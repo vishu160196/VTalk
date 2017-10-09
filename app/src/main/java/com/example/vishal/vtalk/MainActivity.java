@@ -3,6 +3,7 @@ package com.example.vishal.vtalk;
 import android.app.SearchManager;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.design.widget.TabLayout;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -64,6 +65,10 @@ public class MainActivity extends AppCompatActivity {
                         .setAction("Action", null).show();
             }
         });
+
+        TabLayout tabLayout = (TabLayout) findViewById(R.id.tabs);
+        // link ViewPager with TabLayout
+        tabLayout.setupWithViewPager(mViewPager);
 
     }
 
@@ -163,6 +168,12 @@ public class MainActivity extends AppCompatActivity {
                                  Bundle savedInstanceState) {
             View rootView = inflater.inflate(R.layout.fragment_contacts, container, false);
             return rootView;
+        }
+
+        @Override public void onActivityCreated(Bundle savedInstanceState){
+            super.onActivityCreated(savedInstanceState);
+
+
         }
     }
 
