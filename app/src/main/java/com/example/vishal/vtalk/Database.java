@@ -15,16 +15,18 @@ public class Database extends SQLiteOpenHelper {
     public static final String DATABASE_NAME = "VTalk.db";
 
     private static final String SQL_CREATE_ENTRIES_CONTACTS_TABLE =
-            "CREATE TABLE IF NOT EXISTS " + ExpenseTable.FeedEntry.TABLE_NAME + "(" +
-                    ExpenseTable.FeedEntry.type + " TEXT UNIQUE NOT NULL," +
-                    ExpenseTable.FeedEntry.expense + " INT NOT NULL);";
+            "CREATE TABLE IF NOT EXISTS " + Contacts.FeedEntry.TABLE_NAME + "(" +
+                    Contacts.FeedEntry.id + " integer PRIMARY KEY AUTOINCREMENT, " +
+                    Contacts.FeedEntry.contact_id + " integer UNIQUE NOT NULL, " + Contacts.FeedEntry.username +
+                    " TEXT UNIQUE NOT NULL, " + Contacts.FeedEntry.name + " TEXT NOT NULL);";
 
     private static final String SQL_CREATE_ENTRIES_MESSAGES_TABLE =
-            "CREATE TABLE IF NOT EXISTS " + ExpenseDescription.FeedEntry.TABLE_NAME + "(" +
-                    ExpenseDescription.FeedEntry.type + " TEXT NOT NULL, " +
-                    ExpenseDescription.FeedEntry.description + " TEXT NOT NULL, " + ExpenseDescription.FeedEntry.expense + " INT NOT NULL, " + ExpenseDescription.FeedEntry.date + " DATE NOT NULL, " +
-                    "FOREIGN KEY(" + ExpenseDescription.FeedEntry.type + ") REFERENCES " + ExpenseTable.FeedEntry.TABLE_NAME + "(" +
-                    ExpenseTable.FeedEntry.type +") ON DELETE CASCADE ON UPDATE CASCADE);";
+            "CREATE TABLE IF NOT EXISTS " + Messages.FeedEntry.TABLE_NAME + "(" +
+                    Messages.FeedEntry.id + " integer PRIMARY KEY AUTOINCREMENT, " +
+                    Messages.FeedEntry.content + " TEXT NOT NULL, " + Messages.FeedEntry.state + " BOOLEAN NOT NULL, " +
+                    Messages.FeedEntry.sender_id + " INTEGER NOT NULL, " + Messages.FeedEntry.receiver_id + " INTEGER NOT NULL, " + "FOREIGN KEY(" + Messages.FeedEntry.sender_id + ")" +
+                    " REFERENCES " + Contacts.FeedEntry.TABLE_NAME + "(" + Contacts.FeedEntry.contact_id +") ON DELETE CASCADE ON UPDATE CASCADE, " +
+                    "FOREIGN KEY(" + Messages.FeedEntry.receiver_id + ")" + " REFERENCES " + Contacts.FeedEntry.TABLE_NAME + "(" + Contacts.FeedEntry.contact_id +") ON DELETE CASCADE ON UPDATE CASCADE);";
 
 
     public Database(Context context) {
@@ -33,8 +35,8 @@ public class Database extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL(SQL_CREATE_ENTRIES_EXPENSE_DESCRIPTION);
-        db.execSQL(SQL_CREATE_ENTRIES_EXPENSE_TABLE);
+        db.execSQL(SQL_CREATE_ENTRIES_CONTACTS_TABLE);
+        db.execSQL(SQL_CREATE_ENTRIES_MESSAGES_TABLE);
 
     }
 

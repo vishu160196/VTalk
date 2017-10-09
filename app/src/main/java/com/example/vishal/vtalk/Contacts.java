@@ -15,9 +15,9 @@ public final class Contacts {
     public static class FeedEntry implements BaseColumns {
         public static final String TABLE_NAME = "contact";
 
-        public static final String type = "type";
-        public static final String description = "description";
-        public static final String expense = "expense";
-        public static final String date = "date_spent";
+        public static final String id = "id";
+        public static final String contact_id = "contact_id";
+        public static final String name = "name";
+        public static final String username = "username";
     }
 }

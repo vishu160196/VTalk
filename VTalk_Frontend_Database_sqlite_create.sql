@@ -10,8 +10,7 @@ CREATE TABLE message_info (
 
 CREATE TABLE contact (
 	id integer PRIMARY KEY AUTOINCREMENT,
-	contact_id integer UNIQUE,
-	name text,
-	username text
-);
+	contact_id integer UNIQUE NOT NULL,
+	name text NOT NULL,
+	username  text UNIQUE NOT NULL;
 
