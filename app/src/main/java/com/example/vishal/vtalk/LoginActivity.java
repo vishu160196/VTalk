@@ -4,35 +4,23 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.support.annotation.NonNull;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-import android.app.LoaderManager.LoaderCallbacks;
-
-import android.content.CursorLoader;
-import android.content.Loader;
-import android.database.Cursor;
-import android.net.Uri;
 import android.os.AsyncTask;
 
 import android.os.Build;
 import android.os.Bundle;
-import android.provider.ContactsContract;
 import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
-import android.widget.ArrayAdapter;
-import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.IOException;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -40,7 +28,6 @@ import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
-import static android.Manifest.permission.READ_CONTACTS;
 
 /**
  * A login screen that offers login via email/password.
@@ -102,12 +89,72 @@ public class LoginActivity extends AppCompatActivity{
         mRegisterButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                registerNewUser();
+                LinearLayout registrationForm = (LinearLayout) findViewById(R.id.registration_form);
+                registrationForm.setVisibility(View.VISIBLE);
+                if(isFormValid()){
+                    registerNewUser();
+                }
+
             }
         });
 
         mLoginFormView = findViewById(R.id.login_form);
         mProgressView = findViewById(R.id.login_progress);
+    }
+
+    private boolean isFormValid() {
+        // Reset errors.
+        mRegisterName.setError(null);
+        mRegisterUsername.setError(null);
+        mRegisterPassword.setError(null);
+        mRegisterEmail.setError(null);
+
+        // Store values at the time of the login attempt.
+        String name = mRegisterName.getText().toString();
+        String username = mRegisterUsername.getText().toString();
+        String password = mRegisterPassword.getText().toString();
+        String email = mRegisterEmail.getText().toString();
+
+        boolean cancel = false;
+        View focusView = null;
+
+        // Check for a valid email address
+        if (!TextUtils.isEmpty(email)) {
+            mRegisterEmail.setError(getString(R.string.error_field_required));
+            focusView = mRegisterEmail;
+            cancel = true;
+        }
+
+
+
+        // Check for a valid password, if the user entered one.
+        if (!TextUtils.isEmpty(password) && !isPasswordValid(password)) {
+            mRegisterPassword.setError(getString(R.string.error_invalid_password));
+            focusView = mRegisterPassword;
+            cancel = true;
+        }
+
+        // Check for a valid username.
+        if (TextUtils.isEmpty(username)) {
+            mRegisterUsername.setError(getString(R.string.error_field_required));
+            focusView = mRegisterUsername;
+            cancel = true;
+        }
+
+        // Check for a valid name.
+        if (TextUtils.isEmpty(name)) {
+            mRegisterName.setError(getString(R.string.error_field_required));
+            focusView = mRegisterName;
+            cancel = true;
+        }
+
+        if (cancel) {
+            // There was an error; don't attempt login and focus the first
+            // form field with an error.
+            focusView.requestFocus();
+        }
+
+        return !cancel;
     }
 
     private void registerNewUser() {
@@ -273,29 +320,31 @@ public class LoginActivity extends AppCompatActivity{
             Login signUpClient = retrofit.create(Login.class);
 
             Call<LoginResponse> call = signUpClient.loginUser(new LoginForm(mEmail, mPassword));
-            call.enqueue(new Callback<LoginResponse>() {
-                @Override
-                public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
-                    if(response.body().getId()!=null){
-                        // start LoginActivity
-                        Intent main = new Intent(getApplicationContext(), MainActivity.class);
-                        main.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                        //Toast.makeText(getApplicationContext(), getString(R.string.login_to_continue), Toast.LENGTH_LONG).show();
-                        startActivity(main);
-                    }
-                    else{
-                        if(response.code()!=500)
-                            Toast.makeText(getApplicationContext(), response.body().getMessage(), Toast.LENGTH_LONG).show();
-                        else
-                            Toast.makeText(getApplicationContext(), getString(R.string.internal_server_error), Toast.LENGTH_LONG).show();
-                    }
-                }
+            Response<LoginResponse> response=null;
+            try {
+                response = call.execute();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
 
-                @Override
-                public void onFailure(Call<LoginResponse> call, Throwable t) {
-                    Toast.makeText(getApplicationContext(), getString(R.string.network_error), Toast.LENGTH_LONG).show();
+            if(response !=null && response.isSuccessful()){
+                if(response.body().getToken()!=null){
+                    // start LoginActivity
+                    Intent main = new Intent(getApplicationContext(), MainActivity.class);
+                    main.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    startActivity(main);
                 }
-            });
+                else{
+                    if(response.code()!=500)
+                        Toast.makeText(getApplicationContext(), response.body().getMessage(), Toast.LENGTH_LONG).show();
+                    else
+                        Toast.makeText(getApplicationContext(), getString(R.string.internal_server_error), Toast.LENGTH_LONG).show();
+                }
+            }
+            else {
+                Toast.makeText(getApplicationContext(), getString(R.string.network_error), Toast.LENGTH_LONG).show();
+            }
+
             return true;
         }
 
