@@ -80,7 +80,7 @@ exports.login=function(req, res){
                         id:result.rows[0].id
                     };
 
-                    return res.json({ token: jwt.sign(user, secret, {expiresInMinutes: 60*24}) });
+                    return res.json({ token: jwt.sign(user, secret), id : user.id });
                 }
 
                 else
@@ -103,15 +103,7 @@ exports.loginCheck=function(req, res){
     }
 };
 
-exports.logout=function(req, res){
-    if(req.user){
-        req.user=undefined;
-    	res.status(200).send(JSON.stringify({message:'Logged out successfully'}));
-    }
 
-    else
-        res.status(403).send(JSON.stringify({message:'Forbidden'}));
-};
 
 exports.loginRequired = function(req, res, next) {
   if (req.user) {
@@ -134,4 +126,4 @@ exports.userExists=function (req, res) {
             res.status(200).send(JSON.stringify({exists:true, id:result.rows[0].id}));
         }
     });
-}
+};

@@ -5,19 +5,19 @@ package com.example.vishal.vtalk;
  */
 
 class LoginResponse {
-    private String username;
     private Integer id;
+    private String token;
     private String message;
 
-    public String getUsername() {
-        return username;
+    public String getMessage() {
+        return message;
     }
 
     public Integer getId() {
         return id;
     }
 
-    public String getMessage() {
-        return message;
+    public String getToken() {
+        return token;
     }
 }

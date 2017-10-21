@@ -31,6 +31,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,6 +53,7 @@ public class LoginActivity extends AppCompatActivity{
      * Keep track of the login task to ensure we can cancel it if requested.
      */
     private UserLoginTask mAuthTask = null;
+    protected static String token;
 
     // UI references.
     private EditText mEmailView;
@@ -62,12 +64,33 @@ public class LoginActivity extends AppCompatActivity{
     private EditText mRegisterUsername;
     private EditText mRegisterPassword;
     private EditText mRegisterEmail;
-    final private String BASE_URL = "http://vishal-Latitude-E5420/";
+    protected static Retrofit retrofit;
+    final static String BASE_URL = "http://localhost:8080/";
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // set request options for all requests
+        Retrofit.Builder builder =
+                new Retrofit.Builder()
+                        .baseUrl(BASE_URL)
+                        .addConverterFactory(
+                                GsonConverterFactory.create()
+                        );
+
+        // create retrofit adapter
+        retrofit =
+                builder
+                        .build();
+
+        if(token!=null){
+            Intent main = new Intent(getApplicationContext(), MainActivity.class);
+            main.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            //Toast.makeText(getApplicationContext(), getString(R.string.login_to_continue), Toast.LENGTH_LONG).show();
+            startActivity(main);
+        }
         setContentView(R.layout.activity_login);
         // Set up the login form.
         mEmailView = (EditText) findViewById(R.id.email);
@@ -111,18 +134,7 @@ public class LoginActivity extends AppCompatActivity{
     }
 
     private void registerNewUser() {
-        // set request options for all requests
-        Retrofit.Builder builder =
-                new Retrofit.Builder()
-                        .baseUrl(BASE_URL)
-                        .addConverterFactory(
-                                GsonConverterFactory.create()
-                        );
 
-        // create retrofit adapter
-        Retrofit retrofit =
-                builder
-                        .build();
 
         Register signUpClient = retrofit.create(Register.class);
 
@@ -256,28 +268,22 @@ public class LoginActivity extends AppCompatActivity{
         protected Boolean doInBackground(Void... params) {
             // attempt authentication against a network service.
 
-
-            // set request options for all requests
-            Retrofit.Builder builder =
-                    new Retrofit.Builder()
-                            .baseUrl(BASE_URL)
-                            .addConverterFactory(
-                                    GsonConverterFactory.create()
-                            );
-
-            // create retrofit adapter
-            Retrofit retrofit =
-                    builder
-                            .build();
-
             Login signUpClient = retrofit.create(Login.class);
 
             Call<LoginResponse> call = signUpClient.loginUser(new LoginForm(mEmail, mPassword));
-            call.enqueue(new Callback<LoginResponse>() {
-                @Override
-                public void onResponse(Call<LoginResponse> call, Response<LoginResponse> response) {
+
+            Response<LoginResponse> response=null;
+            try {
+                response = call.execute();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                if (response.isSuccessful()) {
                     if(response.body().getId()!=null){
                         // start LoginActivity
+                        token=response.body().getToken();
                         Intent main = new Intent(getApplicationContext(), MainActivity.class);
                         main.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                         //Toast.makeText(getApplicationContext(), getString(R.string.login_to_continue), Toast.LENGTH_LONG).show();
@@ -291,11 +297,14 @@ public class LoginActivity extends AppCompatActivity{
                     }
                 }
 
-                @Override
-                public void onFailure(Call<LoginResponse> call, Throwable t) {
+                else
                     Toast.makeText(getApplicationContext(), getString(R.string.network_error), Toast.LENGTH_LONG).show();
-                }
-            });
+
+            } catch (NullPointerException e) {
+                e.printStackTrace();
+                finish();
+            }
+
             return true;
         }
 

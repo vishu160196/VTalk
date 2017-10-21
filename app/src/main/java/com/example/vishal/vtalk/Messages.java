@@ -17,6 +17,7 @@ public final class Messages {
         public static final String id = "id";
 
         public static final String content = "content";
+        public static final String time = "time";
         public static final String state = "state";
         public static final String sender_id = "sender_id";
         public static final String receiver_id = "receiver_id";
