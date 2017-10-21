@@ -9,7 +9,7 @@ import retrofit2.http.POST;
  */
 
 public interface Login {
-    @POST("/login")
+    @POST("/auth/login")
     Call<LoginResponse> loginUser(
             @Body LoginForm form
     );

@@ -39,6 +39,9 @@ public class LoginActivity extends AppCompatActivity{
      * Keep track of the login task to ensure we can cancel it if requested.
      */
     private UserLoginTask mAuthTask = null;
+    public static String token;
+
+    public static Retrofit retrofit;
 
     // UI references.
     private EditText mEmailView;
@@ -56,6 +59,20 @@ public class LoginActivity extends AppCompatActivity{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_login);
+
+        // set request options for all requests
+        Retrofit.Builder builder =
+                new Retrofit.Builder()
+                        .baseUrl(BASE_URL)
+                        .addConverterFactory(
+                                GsonConverterFactory.create()
+                        );
+
+        // create retrofit adapter
+        retrofit =
+                builder
+                        .build();
+
         // Set up the login form.
         mEmailView = (EditText) findViewById(R.id.email);
         //populateAutoComplete();
@@ -158,18 +175,7 @@ public class LoginActivity extends AppCompatActivity{
     }
 
     private void registerNewUser() {
-        // set request options for all requests
-        Retrofit.Builder builder =
-                new Retrofit.Builder()
-                        .baseUrl(BASE_URL)
-                        .addConverterFactory(
-                                GsonConverterFactory.create()
-                        );
 
-        // create retrofit adapter
-        Retrofit retrofit =
-                builder
-                        .build();
 
         Register signUpClient = retrofit.create(Register.class);
 
@@ -301,21 +307,7 @@ public class LoginActivity extends AppCompatActivity{
 
         @Override
         protected Boolean doInBackground(Void... params) {
-            // attempt authentication against a network service.
 
-
-            // set request options for all requests
-            Retrofit.Builder builder =
-                    new Retrofit.Builder()
-                            .baseUrl(BASE_URL)
-                            .addConverterFactory(
-                                    GsonConverterFactory.create()
-                            );
-
-            // create retrofit adapter
-            Retrofit retrofit =
-                    builder
-                            .build();
 
             Login signUpClient = retrofit.create(Login.class);
 
@@ -330,6 +322,7 @@ public class LoginActivity extends AppCompatActivity{
             if(response !=null && response.isSuccessful()){
                 if(response.body().getToken()!=null){
                     // start LoginActivity
+                    token = response.body().getToken();
                     Intent main = new Intent(getApplicationContext(), MainActivity.class);
                     main.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                     startActivity(main);

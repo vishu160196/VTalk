@@ -16,6 +16,7 @@ CREATE TABLE "message_cache" (
 	"content" TEXT NOT NULL,
 	"sender_id" bigint NOT NULL,
 	"receiver_id" bigint NOT NULL,
+	"time_sent" TIMESTAMP NOT NULL DEFAULT 'now()',
 	CONSTRAINT message_cache_pk PRIMARY KEY ("id")
 ) WITH (
   OIDS=FALSE

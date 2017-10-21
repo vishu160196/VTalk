@@ -23,8 +23,8 @@ public class Database extends SQLiteOpenHelper {
     private static final String SQL_CREATE_ENTRIES_MESSAGES_TABLE =
             "CREATE TABLE IF NOT EXISTS " + Messages.FeedEntry.TABLE_NAME + "(" +
                     Messages.FeedEntry.id + " integer PRIMARY KEY AUTOINCREMENT, " +
-                    Messages.FeedEntry.content + " TEXT NOT NULL, " + Messages.FeedEntry.state + " BOOLEAN NOT NULL, " +
-                    Messages.FeedEntry.sender_id + " INTEGER NOT NULL, " + Messages.FeedEntry.receiver_id + " INTEGER NOT NULL, " + "FOREIGN KEY(" + Messages.FeedEntry.sender_id + ")" +
+                    Messages.FeedEntry.content + " TEXT NOT NULL, " + Messages.FeedEntry.state + " INTEGER NOT NULL, " +
+                    Messages.FeedEntry.sender_id + " INTEGER, " + Messages.FeedEntry.receiver_id + " INTEGER, " + Messages.FeedEntry.time + " DATETIME NOT NULL, " + "FOREIGN KEY(" + Messages.FeedEntry.sender_id + ")" +
                     " REFERENCES " + Contacts.FeedEntry.TABLE_NAME + "(" + Contacts.FeedEntry.contact_id +") ON DELETE CASCADE ON UPDATE CASCADE, " +
                     "FOREIGN KEY(" + Messages.FeedEntry.receiver_id + ")" + " REFERENCES " + Contacts.FeedEntry.TABLE_NAME + "(" + Contacts.FeedEntry.contact_id +") ON DELETE CASCADE ON UPDATE CASCADE);";
 

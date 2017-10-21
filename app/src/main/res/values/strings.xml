@@ -25,4 +25,9 @@
     <string name="action_settings">Logout</string>
     <string name="section_format">Hello World from section: %1$d</string>
     <string name="search">Search</string>
+    <string name="cancel">CANCEL</string>
+    <string name="add">ADD</string>
+    <string name="user_not_exists">No user with this username exists</string>
+    <string name="title_activity_chat_window">ChatWindow</string>
+    <string name="display_contacts">Contacts</string>
 </resources>

@@ -14,11 +14,11 @@ module.exports = function(app) {
 	app.route('/auth/login')
 		.post(userHandlers.login);
 
-    app.route('/auth/logout')
-		.get(userHandlers.loginRequired, userHandlers.logout);
-
     app.route('/auth/login-check')
 		.get(userHandlers.loginCheck);
+
+	app.route('/auth/user-exists')
+    		.get(userHandlers.loginRequired, userHandlers.userExists);
 
     app.route('/search')
 		.get(userHandlers.loginRequired, VTalk.searchUser);

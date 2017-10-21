@@ -1,6 +1,10 @@
 package com.example.vishal.vtalk;
 
 import android.app.SearchManager;
+import android.content.Context;
+import android.content.Intent;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.design.widget.TabLayout;
@@ -21,9 +25,29 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.RelativeLayout;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
+import static android.R.attr.description;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -41,11 +65,19 @@ public class MainActivity extends AppCompatActivity {
      * The {@link ViewPager} that will host the section contents.
      */
     private ViewPager mViewPager;
+    private static Database mDbHelper;
+    private static ListView mContactList;
+    private static ListView mChatsList;
 
+    private static Context mContext;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        mDbHelper = new Database(getApplicationContext());
+        mContactList = (ListView)findViewById(R.id.contacts_list);
+        mChatsList=(ListView)findViewById(R.id.chats_list);
+        mContext=getApplicationContext();
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         // Create the adapter that will return a fragment for each of the three
@@ -61,8 +93,7 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                addContact();
             }
         });
 
@@ -70,6 +101,11 @@ public class MainActivity extends AppCompatActivity {
         // link ViewPager with TabLayout
         tabLayout.setupWithViewPager(mViewPager);
 
+    }
+
+    private void addContact() {
+        AddNewContact newContact = AddNewContact.newContact("Add new contact");
+        newContact.show(getFragmentManager(), "launchAddContactTypeDialog");
     }
 
 
@@ -104,7 +140,24 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public boolean onQueryTextSubmit(String query) {
                     // use this method when query submitted
-                    Toast.makeText(getApplicationContext(), query, Toast.LENGTH_SHORT).show();
+                    SearchClient searchClient = LoginActivity.retrofit.create(SearchClient.class);
+
+                    Call<SearchResponse> call = searchClient.searchUser(query);
+                    call.enqueue(new Callback<SearchResponse>() {
+                        @Override
+                        public void onResponse(Call<SearchResponse> call, Response<SearchResponse> response) {
+                            Intent displayContacts = new Intent(getApplicationContext(), DisplayContacts.class);
+                            displayContacts.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                            displayContacts.putExtra("contacts", (Serializable)response.body().getResponseList());
+                            startActivity(displayContacts);
+                        }
+
+                        @Override
+                        public void onFailure(Call<SearchResponse> call, Throwable t) {
+                            Toast.makeText(getApplicationContext(), getString(R.string.network_error), Toast.LENGTH_LONG).show();
+                        }
+                    });
+
                     return false;
                 }
 
@@ -131,11 +184,47 @@ public class MainActivity extends AppCompatActivity {
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
             // TODO : Logout
-
+            LoginActivity.token=null;
+            Intent login = new Intent(getApplicationContext(), LoginActivity.class);
+            login.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            //Toast.makeText(getApplicationContext(), getString(R.string.login_to_continue), Toast.LENGTH_LONG).show();
+            startActivity(login);
             return true;
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    public void doPositiveClick(final String name, final String username) {
+
+
+        CheckExists checkExistsClient = LoginActivity.retrofit.create(CheckExists.class);
+
+        Call<ExistsResponse> call = checkExistsClient.userExists(username);
+        call.enqueue(new Callback<ExistsResponse>() {
+            @Override
+            public void onResponse(Call<ExistsResponse> call, Response<ExistsResponse> response) {
+                if(response.body().getExists()){
+
+                    Integer id=response.body().getId();
+                    // username exists add contact to local database
+                    SQLiteDatabase db = mDbHelper.getWritableDatabase();
+                    Cursor cursor = db.rawQuery("insert into contact(contact_id, name, username) values(" + id + ", " + name + ", " + username +
+                            ");", null);
+
+                    cursor.close();
+                }
+                else{
+                    // username does not exist display error
+                    Toast.makeText(getApplicationContext(), getString(R.string.user_not_exists), Toast.LENGTH_LONG).show();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ExistsResponse> call, Throwable t) {
+                Toast.makeText(getApplicationContext(), getString(R.string.network_error), Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     /**
@@ -171,10 +260,36 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override public void onActivityCreated(Bundle savedInstanceState){
+
             super.onActivityCreated(savedInstanceState);
 
+            SQLiteDatabase db = mDbHelper.getReadableDatabase();
+
+            Cursor cursor = db.rawQuery("select * from contact order by name asc;", null);
+
+            List<Contact> contactList=new ArrayList<>();
+            while(cursor.moveToNext()) {
+                final String name = cursor.getString(
+                        cursor.getColumnIndexOrThrow(Contacts.FeedEntry.name));
+
+                final String username = cursor.getString(
+                        cursor.getColumnIndexOrThrow(Contacts.FeedEntry.username));
+
+                contactList.add(new Contact(name, username));
+            }
+
+
+
+            // get data from the table by the ListAdapter
+            CustomAdapter customAdapter = new CustomAdapter(getContext(), R.layout.contact_list_row, contactList);
+
+            mContactList.setAdapter(customAdapter);
+
+            cursor.close();
 
         }
+
+
     }
 
     public static class ChatsFragment extends Fragment {
@@ -205,6 +320,60 @@ public class MainActivity extends AppCompatActivity {
             View rootView = inflater.inflate(R.layout.fragment_chats, container, false);
 
             return rootView;
+        }
+
+        @Override public void onActivityCreated(Bundle savedInstanceState){
+
+            super.onActivityCreated(savedInstanceState);
+
+            SQLiteDatabase db = mDbHelper.getReadableDatabase();
+
+            Set<Integer> messengerIdList=new HashSet<>();
+            Cursor cursor = db.rawQuery("select sender_id from message_info group by sender_id;", null);
+
+
+            while(cursor.moveToNext()) {
+                Integer senderId=cursor.getInt(cursor.getColumnIndexOrThrow(Messages.FeedEntry.sender_id));
+
+                messengerIdList.add(senderId);
+            }
+            cursor.close();
+
+            cursor = db.rawQuery("select receiver_id from message_info group by receiver_id;", null);
+
+            while(cursor.moveToNext()) {
+                Integer receiverId=cursor.getInt(cursor.getColumnIndexOrThrow(Messages.FeedEntry.receiver_id));
+
+                messengerIdList.add(receiverId);
+            }
+            cursor.close();
+
+            List<Contact> chatList=new ArrayList<>();
+            for(Integer i : messengerIdList){
+
+                cursor = db.rawQuery("select name, username from contact where id = " + i + ";", null);
+                cursor.moveToNext();
+                String name=cursor.getString(cursor.getColumnIndexOrThrow(Contacts.FeedEntry.name));
+                String username=cursor.getString(cursor.getColumnIndexOrThrow(Contacts.FeedEntry.username));
+                chatList.add(new Contact(name, username));
+                cursor.close();
+            }
+
+            // get data from the table by the ListAdapter
+            CustomAdapter customAdapter = new CustomAdapter(getContext(), R.layout.contact_list_row, chatList);
+
+
+            mChatsList.setAdapter(customAdapter);
+            mChatsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                    String username=((TextView)((RelativeLayout)((TableRow)((TableLayout)view).getChildAt(0)).getChildAt(0)).getChildAt(1)).getText().toString();
+                    Intent openChatWindow=new Intent(mContext, ChatWindow.class);
+                    openChatWindow.putExtra("username", username);
+                    startActivity(openChatWindow);
+                }
+            });
         }
     }
 

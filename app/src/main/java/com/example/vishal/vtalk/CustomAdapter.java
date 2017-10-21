@@ -15,12 +15,11 @@ import java.util.List;
 
 public class CustomAdapter extends ArrayAdapter {
 
-    public CustomAdapter(Context context, int textViewResourceId) {
-        super(context, textViewResourceId);
-    }
 
+    private int resId;
     public CustomAdapter(Context context, int resource, List<Contact> items) {
         super(context, resource, items);
+        resId = resource;
     }
 
     @Override
@@ -31,7 +30,7 @@ public class CustomAdapter extends ArrayAdapter {
         if (v == null) {
             LayoutInflater vi;
             vi = LayoutInflater.from(getContext());
-            v = vi.inflate(R.layout.contact_list_row, null);
+            v = vi.inflate(resId, null);
         }
 
         Contact p = (Contact)getItem(position);
