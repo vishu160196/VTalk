@@ -40,6 +40,7 @@ public class LoginActivity extends AppCompatActivity{
      */
     private UserLoginTask mAuthTask = null;
     public static String token;
+    public static Integer userId;
 
     public static Retrofit retrofit;
 
@@ -52,7 +53,7 @@ public class LoginActivity extends AppCompatActivity{
     private EditText mRegisterUsername;
     private EditText mRegisterPassword;
     private EditText mRegisterEmail;
-    final private String BASE_URL = "http://vishal-Latitude-E5420/";
+    final public String BASE_URL = "http://vishal-Latitude-E5420/";
 
 
     @Override
@@ -183,10 +184,10 @@ public class LoginActivity extends AppCompatActivity{
         call.enqueue(new Callback<RegisterResponse>() {
             @Override
             public void onResponse(Call<RegisterResponse> call, Response<RegisterResponse> response) {
-                if(response.code()==200){
+                if(response.isSuccessful()){
                     Toast.makeText(getApplicationContext(), response.body().getMessage(), Toast.LENGTH_LONG).show();
                 }
-                else if(response.code()==500){
+                else{
                     Toast.makeText(getApplicationContext(), getString(R.string.internal_server_error), Toast.LENGTH_LONG).show();
                 }
             }
@@ -319,21 +320,22 @@ public class LoginActivity extends AppCompatActivity{
                 e.printStackTrace();
             }
 
-            if(response !=null && response.isSuccessful()){
-                if(response.body().getToken()!=null){
+            if(response !=null){
+
+                if (response.isSuccessful()) {
                     // start LoginActivity
-                    token = response.body().getToken();
+                    token = "JWT " + response.body().getToken();
+                    userId = response.body().getId();
                     Intent main = new Intent(getApplicationContext(), MainActivity.class);
                     main.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                     startActivity(main);
                 }
+
                 else{
-                    if(response.code()!=500)
-                        Toast.makeText(getApplicationContext(), response.body().getMessage(), Toast.LENGTH_LONG).show();
-                    else
-                        Toast.makeText(getApplicationContext(), getString(R.string.internal_server_error), Toast.LENGTH_LONG).show();
+                    Toast.makeText(getApplicationContext(), response.body().getMessage(), Toast.LENGTH_LONG).show();
                 }
             }
+
             else {
                 Toast.makeText(getApplicationContext(), getString(R.string.network_error), Toast.LENGTH_LONG).show();
             }
@@ -345,8 +347,6 @@ public class LoginActivity extends AppCompatActivity{
         protected void onPostExecute(final Boolean success) {
             mAuthTask = null;
             showProgress(false);
-
-
         }
 
         @Override

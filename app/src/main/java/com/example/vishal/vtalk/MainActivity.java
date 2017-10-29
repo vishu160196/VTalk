@@ -1,6 +1,9 @@
 package com.example.vishal.vtalk;
 
 import android.app.SearchManager;
+import android.app.job.JobInfo;
+import android.app.job.JobScheduler;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
@@ -51,25 +54,12 @@ import static android.R.attr.description;
 
 public class MainActivity extends AppCompatActivity {
 
-    /**
-     * The {@link android.support.v4.view.PagerAdapter} that will provide
-     * fragments for each of the sections. We use a
-     * {@link FragmentPagerAdapter} derivative, which will keep every
-     * loaded fragment in memory. If this becomes too memory intensive, it
-     * may be best to switch to a
-     * {@link android.support.v4.app.FragmentStatePagerAdapter}.
-     */
-    private SectionsPagerAdapter mSectionsPagerAdapter;
+    public static Database mDbHelper;
+    private ListView mContactList;
+    private ListView mChatsList;
+    private int jobId;
 
-    /**
-     * The {@link ViewPager} that will host the section contents.
-     */
-    private ViewPager mViewPager;
-    private static Database mDbHelper;
-    private static ListView mContactList;
-    private static ListView mChatsList;
-
-    private static Context mContext;
+    private Context mContext;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -78,16 +68,28 @@ public class MainActivity extends AppCompatActivity {
         mContactList = (ListView)findViewById(R.id.contacts_list);
         mChatsList=(ListView)findViewById(R.id.chats_list);
         mContext=getApplicationContext();
+        JobScheduler mJobScheduler = (JobScheduler) getSystemService(Context.JOB_SCHEDULER_SERVICE);
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         // Create the adapter that will return a fragment for each of the three
         // primary sections of the activity.
-        mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager());
+        /*
+      The {@link android.support.v4.view.PagerAdapter} that will provide
+      fragments for each of the sections. We use a
+      {@link FragmentPagerAdapter} derivative, which will keep every
+      loaded fragment in memory. If this becomes too memory intensive, it
+      may be best to switch to a
+      {@link android.support.v4.app.FragmentStatePagerAdapter}.
+     */
+        SectionsPagerAdapter mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager());
 
         // Set up the ViewPager with the sections adapter.
-        mViewPager = (ViewPager) findViewById(R.id.container);
+        /*
+      The {@link ViewPager} that will host the section contents.
+     */
+        ViewPager mViewPager = (ViewPager) findViewById(R.id.container);
+        mViewPager.setOffscreenPageLimit(2);
         mViewPager.setAdapter(mSectionsPagerAdapter);
-
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -101,6 +103,14 @@ public class MainActivity extends AppCompatActivity {
         // link ViewPager with TabLayout
         tabLayout.setupWithViewPager(mViewPager);
 
+        // fetch new messages from message_info
+        JobInfo.Builder builder = new JobInfo.Builder( ++jobId,
+                new ComponentName( getPackageName(), MessageService.class.getName() ) );
+
+        builder.setPeriodic( 5000 );
+        builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY);
+
+        mJobScheduler.schedule( builder.build() );
     }
 
     private void addContact() {
@@ -142,18 +152,26 @@ public class MainActivity extends AppCompatActivity {
                     // use this method when query submitted
                     SearchClient searchClient = LoginActivity.retrofit.create(SearchClient.class);
 
-                    Call<SearchResponse> call = searchClient.searchUser(query);
-                    call.enqueue(new Callback<SearchResponse>() {
+                    Call<List<Contact>> call = searchClient.searchUser(query, LoginActivity.token);
+                    call.enqueue(new Callback<List<Contact>>() {
                         @Override
-                        public void onResponse(Call<SearchResponse> call, Response<SearchResponse> response) {
-                            Intent displayContacts = new Intent(getApplicationContext(), DisplayContacts.class);
-                            displayContacts.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                            displayContacts.putExtra("contacts", (Serializable)response.body().getResponseList());
-                            startActivity(displayContacts);
+                        public void onResponse(Call<List<Contact>> call, Response<List<Contact>> response) {
+                            if(response.isSuccessful()){
+                                Intent displayContacts = new Intent(getApplicationContext(), DisplayContacts.class);
+                                displayContacts.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                                displayContacts.putExtra("contacts", (Serializable)response.body());
+                                startActivity(displayContacts);
+                            }
+
+                            else{
+                                if(response.body().size()!=0)
+                                    Toast.makeText(getApplicationContext(), response.body().get(0).getMessage(), Toast.LENGTH_LONG).show();
+                                else Toast.makeText(getApplicationContext(), getString(R.string.user_not_exists), Toast.LENGTH_LONG).show();
+                            }
                         }
 
                         @Override
-                        public void onFailure(Call<SearchResponse> call, Throwable t) {
+                        public void onFailure(Call<List<Contact>> call, Throwable t) {
                             Toast.makeText(getApplicationContext(), getString(R.string.network_error), Toast.LENGTH_LONG).show();
                         }
                     });
@@ -183,12 +201,10 @@ public class MainActivity extends AppCompatActivity {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
-            // TODO : Logout
+
             LoginActivity.token=null;
-            Intent login = new Intent(getApplicationContext(), LoginActivity.class);
-            login.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            //Toast.makeText(getApplicationContext(), getString(R.string.login_to_continue), Toast.LENGTH_LONG).show();
-            startActivity(login);
+            LoginActivity.userId=null;
+            finish();
             return true;
         }
 
@@ -200,19 +216,24 @@ public class MainActivity extends AppCompatActivity {
 
         CheckExists checkExistsClient = LoginActivity.retrofit.create(CheckExists.class);
 
-        Call<ExistsResponse> call = checkExistsClient.userExists(username);
+        Call<ExistsResponse> call = checkExistsClient.userExists(username, LoginActivity.token);
         call.enqueue(new Callback<ExistsResponse>() {
             @Override
             public void onResponse(Call<ExistsResponse> call, Response<ExistsResponse> response) {
-                if(response.body().getExists()){
+                if(response.isSuccessful()){
 
                     Integer id=response.body().getId();
                     // username exists add contact to local database
                     SQLiteDatabase db = mDbHelper.getWritableDatabase();
-                    Cursor cursor = db.rawQuery("insert into contact(contact_id, name, username) values(" + id + ", " + name + ", " + username +
-                            ");", null);
+                    Cursor cursor = db.rawQuery("insert into contact(contact_id, name, username) values(" + id + ", '" + name + "', '" + username +
+                            "');", null);
 
                     cursor.close();
+
+                    mContactList.removeAllViews();
+                    displayContacts(mContext, mContactList);
+
+
                 }
                 else{
                     // username does not exist display error
@@ -227,6 +248,31 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private static void displayContacts(Context context, ListView contacts){
+        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery("select * from contact order by name asc;", null);
+
+        List<Contact> contactList=new ArrayList<>();
+        while(cursor.moveToNext()) {
+            final String name = cursor.getString(
+                    cursor.getColumnIndexOrThrow(Contacts.FeedEntry.name));
+
+            final String username = cursor.getString(
+                    cursor.getColumnIndexOrThrow(Contacts.FeedEntry.username));
+
+            contactList.add(new Contact(name, username));
+        }
+
+
+
+        // get data from the table by the ListAdapter
+        CustomAdapter customAdapter = new CustomAdapter(context, R.layout.contact_list_row, contactList);
+
+        contacts.setAdapter(customAdapter);
+
+        cursor.close();
+    }
     /**
      * A placeholder fragment containing a simple view.
      */
@@ -236,6 +282,8 @@ public class MainActivity extends AppCompatActivity {
          * fragment.
          */
         private static final String ARG_SECTION_NUMBER = "section_number";
+        Context context;
+        ListView contacts;
 
         public ContactsFragment() {
         }
@@ -244,13 +292,16 @@ public class MainActivity extends AppCompatActivity {
          * Returns a new instance of this fragment for the given section
          * number.
          */
-        public static ContactsFragment newInstance(int sectionNumber) {
+        public static ContactsFragment newInstance(int sectionNumber, Context ctx, ListView contacts) {
             ContactsFragment fragment = new ContactsFragment();
             Bundle args = new Bundle();
             args.putInt(ARG_SECTION_NUMBER, sectionNumber);
             fragment.setArguments(args);
+            fragment.context=ctx;
+            fragment.contacts=contacts;
             return fragment;
         }
+
 
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -263,29 +314,7 @@ public class MainActivity extends AppCompatActivity {
 
             super.onActivityCreated(savedInstanceState);
 
-            SQLiteDatabase db = mDbHelper.getReadableDatabase();
-
-            Cursor cursor = db.rawQuery("select * from contact order by name asc;", null);
-
-            List<Contact> contactList=new ArrayList<>();
-            while(cursor.moveToNext()) {
-                final String name = cursor.getString(
-                        cursor.getColumnIndexOrThrow(Contacts.FeedEntry.name));
-
-                final String username = cursor.getString(
-                        cursor.getColumnIndexOrThrow(Contacts.FeedEntry.username));
-
-                contactList.add(new Contact(name, username));
-            }
-
-
-
-            // get data from the table by the ListAdapter
-            CustomAdapter customAdapter = new CustomAdapter(getContext(), R.layout.contact_list_row, contactList);
-
-            mContactList.setAdapter(customAdapter);
-
-            cursor.close();
+            displayContacts(context, contacts);
 
         }
 
@@ -300,17 +329,22 @@ public class MainActivity extends AppCompatActivity {
         private static final String ARG_SECTION_NUMBER = "section_number";
 
         public ChatsFragment() {
+
         }
 
+        Context context;
+        ListView chats;
         /**
          * Returns a new instance of this fragment for the given section
          * number.
          */
-        public static ChatsFragment newInstance(int sectionNumber) {
+        public static ChatsFragment newInstance(int sectionNumber, Context ctx, ListView chats) {
             ChatsFragment fragment = new ChatsFragment();
             Bundle args = new Bundle();
             args.putInt(ARG_SECTION_NUMBER, sectionNumber);
             fragment.setArguments(args);
+            fragment.context=ctx;
+            fragment.chats=chats;
             return fragment;
         }
 
@@ -363,13 +397,13 @@ public class MainActivity extends AppCompatActivity {
             CustomAdapter customAdapter = new CustomAdapter(getContext(), R.layout.contact_list_row, chatList);
 
 
-            mChatsList.setAdapter(customAdapter);
-            mChatsList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            chats.setAdapter(customAdapter);
+            chats.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
                     String username=((TextView)((RelativeLayout)((TableRow)((TableLayout)view).getChildAt(0)).getChildAt(0)).getChildAt(1)).getText().toString();
-                    Intent openChatWindow=new Intent(mContext, ChatWindow.class);
+                    Intent openChatWindow=new Intent(context, ChatWindow.class);
                     openChatWindow.putExtra("username", username);
                     startActivity(openChatWindow);
                 }
@@ -393,10 +427,10 @@ public class MainActivity extends AppCompatActivity {
             // Return a PlaceholderFragment (defined as a static inner class below).
             switch(position){
                 case 0:
-                    return ContactsFragment.newInstance(position + 1);
+                    return ContactsFragment.newInstance(position + 1, mContext, mContactList);
 
                 case 1:
-                    return ChatsFragment.newInstance(position + 1);
+                    return ChatsFragment.newInstance(position + 1, mContext, mChatsList);
 
             }
             return null;

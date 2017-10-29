@@ -5,4 +5,20 @@ package com.example.vishal.vtalk;
  */
 
 public class Message {
+    private String content;
+    private Integer state;
+
+    public String getContent() {
+        return content;
+    }
+
+    public Integer getState() {
+        return state;
+    }
+
+    public Message(String content, Integer state) {
+
+        this.content = content;
+        this.state = state;
+    }
 }

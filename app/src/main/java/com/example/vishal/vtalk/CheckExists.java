@@ -2,6 +2,7 @@ package com.example.vishal.vtalk;
 
 import retrofit2.Call;
 import retrofit2.http.GET;
+import retrofit2.http.Header;
 import retrofit2.http.Query;
 
 /**
@@ -10,5 +11,5 @@ import retrofit2.http.Query;
 
 interface CheckExists {
     @GET("/auth/user-exists")
-    Call<ExistsResponse> userExists(@Query("name") String username);
+    Call<ExistsResponse> userExists(@Query("name") String username, @Header("Authorization") String token);
 }

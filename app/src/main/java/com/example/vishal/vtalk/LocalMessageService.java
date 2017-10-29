@@ -1,31 +1,34 @@
 package com.example.vishal.vtalk;
 
-import android.app.Notification;
+
 import android.app.job.JobParameters;
 import android.app.job.JobService;
-import android.content.Intent;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
-import android.widget.Toast;
+import android.view.LayoutInflater;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
-import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
-
-import retrofit2.Call;
-import retrofit2.Response;
 
 
 /**
  * Created by vishal on 26/10/17.
  */
 
-public class MessageService extends JobService{
+public class LocalMessageService extends JobService{
 
-    private MessageLoader mMessageLoader;
+    private LocalMessageService.MessageLoader mMessageLoader;
+
+
 
     @Override
     public boolean onStartJob(JobParameters params) {
-        mMessageLoader = new MessageLoader();
-        mMessageLoader.execute((Void) null);
+        mMessageLoader = new MessageLoader(this);
+        mMessageLoader.execute(params);
         return true;
     }
 
@@ -34,32 +37,29 @@ public class MessageService extends JobService{
         return false;
     }
 
-    public class MessageLoader extends AsyncTask<Void, Void, List<String>>{
+    public class MessageLoader extends AsyncTask<JobParameters, Void, List<Message>> {
+
+        private JobService jobService;
+        private JobParameters jobParameters;
+
+        public MessageLoader(JobService jobService) {
+
+            this.jobService = jobService;
+        }
 
         @Override
-        protected List<String> doInBackground(Void... params) {
-            MessageClient client = LoginActivity.retrofit.create(MessageClient.class);
-            Call<List<MessageResponse>> call = client.getMessages(LoginActivity.userId, LoginActivity.token);
-            Response<List<MessageResponse>> response=null;
-            try{
-                response = call.execute();
-            }catch (IOException e) {
-                e.printStackTrace();
-            }
-            if(response !=null){
-                if(response.isSuccessful()){
-                    List<MessageResponse> messages = response.body();
-
-                }
-                else {
-                    Toast.makeText(getApplicationContext(), response.body().get(0).getMessage(), Toast.LENGTH_LONG).show();
-                }
-            }
-            else {
-                Toast.makeText(getApplicationContext(), getString(R.string.network_error), Toast.LENGTH_LONG).show();
-            }
-
-
+        protected List<Message> doInBackground(JobParameters... params) {
+            this.jobParameters=params[0];
+            return ChatWindow.getMessagesFromLocalDb();
         }
+
+        @Override
+        protected void onPostExecute(List<Message> result){
+
+            ChatWindow.displayMessages(result, getApplicationContext());
+            jobService.jobFinished(jobParameters, false);
+        }
+
     }
+
 }

@@ -6,10 +6,10 @@ exports.searchUser=function(req, res){
     var contact = req.query.contact;
 
     //fetch data from db corresponding to carName
-    pool.query("SELECT name, username FROM user_info WHERE name= ($1);", [contact], function (err, result) {
+    pool.query("SELECT name, username FROM user_info WHERE name= $1;", [contact], function (err, result) {
 
         if (err) {
-            res.status(500).send(JSON.stringify({message:err.toString()}));
+            res.status(500).send(JSON.stringify([{message:err.toString()}]));
         }
 
         else {
@@ -32,10 +32,10 @@ exports.searchUser=function(req, res){
 exports.getMessages=function(req, res){
     var id = req.query.id;
     //fetch data from db corresponding to carName
-    pool.query("SELECT content, sender_id FROM message_cache WHERE receiver_id= ($1);", [id], function (err, result) {
+    pool.query("SELECT content, sender_id FROM message_cache WHERE receiver_id= $1;", [id], function (err, result) {
 
         if (err) {
-            res.status(500).send(JSON.stringify({message:err.toString()}));
+            res.status(500).send(JSON.stringify([{message:err.toString()}]));
         }
 
         else {
@@ -45,7 +45,8 @@ exports.getMessages=function(req, res){
             for(var i=0;i<length;i++){
                 messages.push({
                     content:result.rows[i].content,
-                    sender_id:result.rows[i].sender_id
+                    sender_id:result.rows[i].sender_id,
+                    time:result.rows[i].time_sent
                 });
             }
 
@@ -71,11 +72,11 @@ exports.sendMessage=function (req, res) {
     pool.query("insert into message_cache(content, sender_id, receiver_id) values($1, $2, $3) ;", [content, senderId, receiverId], function (err, result) {
 
         if (err) {
-            res.status(500).send(JSON.stringify({message:err.toString()}));
+            res.status(500).send(JSON.stringify(err.toString()));
         }
 
         else {
-            res.status(200).send(JSON.stringify({message:'Message sent successfully'}));
+            res.status(200).send(JSON.stringify('Message sent successfully'));
         }
     });
 };

@@ -1,7 +1,10 @@
 package com.example.vishal.vtalk;
 
+import java.util.List;
+
 import retrofit2.Call;
 import retrofit2.http.GET;
+import retrofit2.http.Header;
 import retrofit2.http.Query;
 
 /**
@@ -10,5 +13,5 @@ import retrofit2.http.Query;
 
 interface SearchClient {
     @GET("/search")
-    Call<SearchResponse> searchUser(@Query("contact") String name);
+    Call<List<Contact>> searchUser(@Query("contact") String name, @Header("Authorization") String token);
 }

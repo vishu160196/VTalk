@@ -7,6 +7,11 @@ package com.example.vishal.vtalk;
 class LoginResponse {
     private String message;
     private String token;
+    private Integer id;
+
+    public Integer getId() {
+        return id;
+    }
 
     public String getMessage() {
         return message;
