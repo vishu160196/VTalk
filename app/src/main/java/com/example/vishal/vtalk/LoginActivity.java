@@ -53,7 +53,7 @@ public class LoginActivity extends AppCompatActivity{
     private EditText mRegisterUsername;
     private EditText mRegisterPassword;
     private EditText mRegisterEmail;
-    final public String BASE_URL = "http://vishal-Latitude-E5420/";
+    final public String BASE_URL = "https://ddc0b860.ngrok.io/";
 
 
     @Override
@@ -137,7 +137,7 @@ public class LoginActivity extends AppCompatActivity{
         View focusView = null;
 
         // Check for a valid email address
-        if (!TextUtils.isEmpty(email)) {
+        if (TextUtils.isEmpty(email)) {
             mRegisterEmail.setError(getString(R.string.error_field_required));
             focusView = mRegisterEmail;
             cancel = true;
@@ -146,7 +146,7 @@ public class LoginActivity extends AppCompatActivity{
 
 
         // Check for a valid password, if the user entered one.
-        if (!TextUtils.isEmpty(password) && !isPasswordValid(password)) {
+        if (TextUtils.isEmpty(password) && !isPasswordValid(password)) {
             mRegisterPassword.setError(getString(R.string.error_invalid_password));
             focusView = mRegisterPassword;
             cancel = true;
@@ -251,7 +251,7 @@ public class LoginActivity extends AppCompatActivity{
 
     private boolean isPasswordValid(String password) {
         //TODO: Replace this with your own logic
-        return password.length() > 8;
+        return password.length() >= 8;
     }
 
     /**
@@ -306,6 +306,7 @@ public class LoginActivity extends AppCompatActivity{
             mPassword = password;
         }
 
+        private Response<LoginResponse> response;
         @Override
         protected Boolean doInBackground(Void... params) {
 
@@ -313,7 +314,7 @@ public class LoginActivity extends AppCompatActivity{
             Login signUpClient = retrofit.create(Login.class);
 
             Call<LoginResponse> call = signUpClient.loginUser(new LoginForm(mEmail, mPassword));
-            Response<LoginResponse> response=null;
+            response=null;
             try {
                 response = call.execute();
             } catch (IOException e) {
@@ -323,30 +324,44 @@ public class LoginActivity extends AppCompatActivity{
             if(response !=null){
 
                 if (response.isSuccessful()) {
-                    // start LoginActivity
-                    token = "JWT " + response.body().getToken();
-                    userId = response.body().getId();
-                    Intent main = new Intent(getApplicationContext(), MainActivity.class);
-                    main.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                    startActivity(main);
+                    return true;
                 }
 
                 else{
-                    Toast.makeText(getApplicationContext(), response.body().getMessage(), Toast.LENGTH_LONG).show();
+                    return false;
                 }
             }
 
-            else {
-                Toast.makeText(getApplicationContext(), getString(R.string.network_error), Toast.LENGTH_LONG).show();
-            }
+            return false;
 
-            return true;
+
         }
 
         @Override
         protected void onPostExecute(final Boolean success) {
             mAuthTask = null;
             showProgress(false);
+            if(response==null){
+                Toast.makeText(getApplicationContext(), getString(R.string.network_error), Toast.LENGTH_LONG).show();
+                return;
+            }
+            if (success) {
+                // start LoginActivity
+                token = "JWT " + response.body().getToken();
+                userId = response.body().getId();
+                Intent main = new Intent(getApplicationContext(), MainActivity.class);
+                main.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                startActivity(main);
+            } else {
+                try{
+                    Toast.makeText(getApplicationContext(), response.body().getMessage(), Toast.LENGTH_LONG).show();
+                }catch(NullPointerException e){
+                    Toast.makeText(getApplicationContext(), "Not found", Toast.LENGTH_LONG).show();
+                }
+            }
+
+
+
         }
 
         @Override

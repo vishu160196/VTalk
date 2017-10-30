@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:drawable/screen_background_dark_transparent"
@@ -30,15 +31,18 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <ScrollView
-        android:layout_width="368dp"
-        android:layout_height="400dp"
+        android:layout_width="346dp"
+        android:layout_height="289dp"
         android:id="@+id/message_view"
         android:layout_marginBottom="6dp"
         android:layout_marginLeft="8dp"
         android:layout_marginRight="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent">
+        app:layout_constraintRight_toRightOf="parent"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@+id/message_to_be_sent"
+        tools:layout_editor_absoluteY="198dp">
 
         <LinearLayout
             android:id="@+id/message_box"
@@ -48,4 +52,4 @@
     </ScrollView>
 
 
-</android.support.constraint.ConstraintLayout>
+</LinearLayout>

@@ -7,6 +7,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -28,6 +29,7 @@ public class LocalMessageService extends JobService{
     @Override
     public boolean onStartJob(JobParameters params) {
         mMessageLoader = new MessageLoader(this);
+        Log.d("debug","job started");
         mMessageLoader.execute(params);
         return true;
     }
@@ -50,11 +52,13 @@ public class LocalMessageService extends JobService{
         @Override
         protected List<Message> doInBackground(JobParameters... params) {
             this.jobParameters=params[0];
+            Log.d("debug","job in bg");
             return ChatWindow.getMessagesFromLocalDb();
         }
 
         @Override
         protected void onPostExecute(List<Message> result){
+            Log.d("debug","job on post execute");
 
             ChatWindow.displayMessages(result, getApplicationContext());
             jobService.jobFinished(jobParameters, false);

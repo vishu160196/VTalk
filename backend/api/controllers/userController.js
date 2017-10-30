@@ -114,15 +114,21 @@ exports.loginRequired = function(req, res, next) {
 };
 
 exports.userExists=function (req, res) {
-    var username=req.params.username;
+    var username=req.query.username;
 
-    pool.query("select username, id from user_info where username=$1;", [username], function (err, result) {
+    pool.query("select username, id from user_info where username= $1;", [username], function (err, result) {
 
-        if (err) {
-            res.status(500).send(JSON.stringify({message:err.toString()}));
+        if (err||result.rows.length===0) {
+            if(err){
+                res.status(500).send(JSON.stringify({message:err.toString()}));
+            }
+            else{
+                res.status(500).send(JSON.stringify({message:'user does not exist'}));
+            }
         }
 
         else {
+
             res.status(200).send(JSON.stringify({exists:true, id:result.rows[0].id}));
         }
     });

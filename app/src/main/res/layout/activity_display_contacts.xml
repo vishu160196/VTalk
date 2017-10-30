@@ -5,7 +5,7 @@
     <ListView
         android:layout_height="wrap_content"
         android:layout_width="match_parent"
-        android:id="@+id/contacts_list">
+        android:id="@+id/display_contacts_list">
 
     </ListView>
 

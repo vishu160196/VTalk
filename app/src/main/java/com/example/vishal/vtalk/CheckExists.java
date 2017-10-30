@@ -11,5 +11,5 @@ import retrofit2.http.Query;
 
 interface CheckExists {
     @GET("/auth/user-exists")
-    Call<ExistsResponse> userExists(@Query("name") String username, @Header("Authorization") String token);
+    Call<ExistsResponse> userExists(@Query("username") String username, @Header("Authorization") String token);
 }

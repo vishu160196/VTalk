@@ -14,6 +14,7 @@ import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.text.TextUtils;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.EditText;
@@ -59,7 +60,7 @@ public class ChatWindow extends AppCompatActivity implements View.OnClickListene
 
         Cursor cursor;
 
-        cursor=db.rawQuery("select contact_id from contact where username = "+ username +";", null);
+        cursor=db.rawQuery("select contact_id from contact where username = '"+ username +"';", null);
         cursor.moveToNext();
         id=cursor.getInt(cursor.getColumnIndexOrThrow(Contacts.FeedEntry.contact_id));
 
@@ -70,7 +71,7 @@ public class ChatWindow extends AppCompatActivity implements View.OnClickListene
         JobInfo.Builder builder = new JobInfo.Builder( ++jobId,
                 new ComponentName( getPackageName(), LocalMessageService.class.getName() ) );
 
-        builder.setPeriodic( 1000 );
+        builder.setPeriodic( 50 );
 
         mJobScheduler.schedule( builder.build() );
 
@@ -97,11 +98,11 @@ public class ChatWindow extends AppCompatActivity implements View.OnClickListene
         }
         SQLiteDatabase db = MainActivity.mDbHelper.getWritableDatabase();
         Date time=new Date();
-        Cursor cursor=db.rawQuery("insert into message_info(content,state,receiver_id,time) values('"+content+"', "+"1, "+id+", "+time, null);
-        cursor.close();
+        db.execSQL("insert into message_info(content,state,receiver_id,time) values('"+content+"', "+"1, "+id+", '"+time+"');");
+
 
         SendMessage client=LoginActivity.retrofit.create(SendMessage.class);
-        Call<String> call=client.sendMessage(content, LoginActivity.token);
+        Call<String> call=client.sendMessage(new MessageBody(content, LoginActivity.userId, id, time), LoginActivity.token);
         call.enqueue(new Callback<String>() {
             @Override
             public void onResponse(Call<String> call, Response<String> response) {
@@ -138,12 +139,18 @@ public class ChatWindow extends AppCompatActivity implements View.OnClickListene
             messages.add(new Message(content, state));
         }
         cursor.close();
+        Log.d("debug",messages.toString());
+
         return messages;
     }
 
     public static void displayMessages(List<Message> result, Context ctx){
+        Log.d("debug","removing all views");
+
         mMessageBox.removeAllViews();
         LayoutInflater inflater = LayoutInflater.from(ctx);
+        Log.d("debug",result.toString());
+
         for (Message m:result
                 ) {
 
@@ -160,6 +167,8 @@ public class ChatWindow extends AppCompatActivity implements View.OnClickListene
                 mMessageBox.addView(messageBox);
             }
         }
+        Log.d("debug","new messages added");
+
     }
 
     private class EmptyMessageBoxException extends Throwable {

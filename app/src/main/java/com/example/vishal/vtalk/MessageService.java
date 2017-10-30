@@ -3,8 +3,10 @@ package com.example.vishal.vtalk;
 import android.app.job.JobParameters;
 import android.app.job.JobService;
 import android.database.Cursor;
+import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.AsyncTask;
+import android.util.Log;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -24,7 +26,7 @@ public class MessageService extends JobService {
     @Override
     public boolean onStartJob(JobParameters params) {
         mMessageLoader = new MessageLoader(this);
-
+Log.d("debug2","job started");
         mMessageLoader.execute(params);
         return true;
     }
@@ -45,6 +47,7 @@ public class MessageService extends JobService {
 
         @Override
         protected JobParameters doInBackground(JobParameters... params) {
+            Log.d("debug2","job in bg");
             MessageClient client = LoginActivity.retrofit.create(MessageClient.class);
             Call<List<MessageResponse>> call = client.getMessages(LoginActivity.userId, LoginActivity.token);
             Response<List<MessageResponse>> response=null;
@@ -59,23 +62,31 @@ public class MessageService extends JobService {
                     List<MessageResponse> message= response.body();
                     SQLiteDatabase db = MainActivity.mDbHelper.getWritableDatabase();
                     for(MessageResponse m:message){
-                        Cursor cursor = db.rawQuery("insert into message_info(content, state, sender_id, time) values('" + m.getContent() +
-                                "', 0, " + m.getSender_id() + ", '" + m.getTime() + "');", null);
+                        try {
+                            db.execSQL("insert into message_info(content, state, sender_id, time) values('" + m.getContent() +
+                                    "', 0, " + m.getSender_id() + ", '" + m.getTime() + "');");
+                        } catch (android.database.sqlite.SQLiteConstraintException e) {
+                            e.printStackTrace();
+                        }
 
-                        cursor.close();
+
                     }
 
                 }
             }
+
             else {
                 Toast.makeText(getApplicationContext(), getString(R.string.network_error), Toast.LENGTH_LONG).show();
             }
+            Log.d("debug2",response.body().toString());
+
 
             return params[0];
         }
 
         @Override
         protected void onPostExecute(JobParameters params) {
+            Log.d("debug2","job in post execute");
             jobService.jobFinished(params, false);
         }
     }

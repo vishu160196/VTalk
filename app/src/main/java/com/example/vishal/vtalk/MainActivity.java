@@ -1,5 +1,6 @@
 package com.example.vishal.vtalk;
 
+import android.app.Activity;
 import android.app.SearchManager;
 import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
@@ -22,6 +23,7 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -55,11 +57,11 @@ import static android.R.attr.description;
 public class MainActivity extends AppCompatActivity {
 
     public static Database mDbHelper;
-    private ListView mContactList;
-    private ListView mChatsList;
+    private  ListView mContactList;
+    private  ListView mChatsList;
     private int jobId;
 
-    private Context mContext;
+    private  Context mContext;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -210,6 +212,37 @@ public class MainActivity extends AppCompatActivity {
 
         return super.onOptionsItemSelected(item);
     }
+    static List<Contact> contactList;
+    static CustomAdapter customAdapter;
+    private void displayContacts(){
+
+        contactList.clear();
+
+        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+
+        Cursor cursor = db.rawQuery("select * from contact order by name asc;", null);
+
+        //List<Contact> contactList=new ArrayList<>();
+        while(cursor.moveToNext()) {
+            final String name = cursor.getString(
+                    cursor.getColumnIndexOrThrow(Contacts.FeedEntry.name));
+
+            final String username = cursor.getString(
+                    cursor.getColumnIndexOrThrow(Contacts.FeedEntry.username));
+
+            contactList.add(new Contact(name, username));
+        }
+
+        Log.d("dbtest1", contactList.toString());
+
+
+        // get data from the table by the ListAdapter
+        customAdapter.notifyDataSetChanged();
+
+
+
+        cursor.close();
+    }
 
     public void doPositiveClick(final String name, final String username) {
 
@@ -225,13 +258,13 @@ public class MainActivity extends AppCompatActivity {
                     Integer id=response.body().getId();
                     // username exists add contact to local database
                     SQLiteDatabase db = mDbHelper.getWritableDatabase();
-                    Cursor cursor = db.rawQuery("insert into contact(contact_id, name, username) values(" + id + ", '" + name + "', '" + username +
-                            "');", null);
+                    db.execSQL("insert into contact(contact_id, name, username) values(" + id + ", '" + name + "', '" + username +
+                            "');");
 
-                    cursor.close();
 
-                    mContactList.removeAllViews();
-                    displayContacts(mContext, mContactList);
+
+
+                    displayContacts();
 
 
                 }
@@ -248,31 +281,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private static void displayContacts(Context context, ListView contacts){
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
 
-        Cursor cursor = db.rawQuery("select * from contact order by name asc;", null);
-
-        List<Contact> contactList=new ArrayList<>();
-        while(cursor.moveToNext()) {
-            final String name = cursor.getString(
-                    cursor.getColumnIndexOrThrow(Contacts.FeedEntry.name));
-
-            final String username = cursor.getString(
-                    cursor.getColumnIndexOrThrow(Contacts.FeedEntry.username));
-
-            contactList.add(new Contact(name, username));
-        }
-
-
-
-        // get data from the table by the ListAdapter
-        CustomAdapter customAdapter = new CustomAdapter(context, R.layout.contact_list_row, contactList);
-
-        contacts.setAdapter(customAdapter);
-
-        cursor.close();
-    }
     /**
      * A placeholder fragment containing a simple view.
      */
@@ -282,8 +291,7 @@ public class MainActivity extends AppCompatActivity {
          * fragment.
          */
         private static final String ARG_SECTION_NUMBER = "section_number";
-        Context context;
-        ListView contacts;
+
 
         public ContactsFragment() {
         }
@@ -292,13 +300,12 @@ public class MainActivity extends AppCompatActivity {
          * Returns a new instance of this fragment for the given section
          * number.
          */
-        public static ContactsFragment newInstance(int sectionNumber, Context ctx, ListView contacts) {
+        public static ContactsFragment newInstance(int sectionNumber) {
             ContactsFragment fragment = new ContactsFragment();
             Bundle args = new Bundle();
             args.putInt(ARG_SECTION_NUMBER, sectionNumber);
             fragment.setArguments(args);
-            fragment.context=ctx;
-            fragment.contacts=contacts;
+
             return fragment;
         }
 
@@ -314,11 +321,35 @@ public class MainActivity extends AppCompatActivity {
 
             super.onActivityCreated(savedInstanceState);
 
-            displayContacts(context, contacts);
+            displayContacts();
 
         }
 
+        private  void displayContacts(){
+            SQLiteDatabase db = mDbHelper.getReadableDatabase();
 
+            Cursor cursor = db.rawQuery("select * from contact order by name asc;", null);
+
+            contactList=new ArrayList<>();
+            while(cursor.moveToNext()) {
+                final String name = cursor.getString(
+                        cursor.getColumnIndexOrThrow(Contacts.FeedEntry.name));
+
+                final String username = cursor.getString(
+                        cursor.getColumnIndexOrThrow(Contacts.FeedEntry.username));
+
+                contactList.add(new Contact(name, username));
+            }
+
+Log.d("dbtest", contactList.toString());
+
+            // get data from the table by the ListAdapter
+            customAdapter = new CustomAdapter(getActivity().getApplicationContext(), R.layout.contact_list_row, contactList);
+            ListView contactListView = getView().findViewById(R.id.contacts_list);
+            contactListView.setAdapter(customAdapter);
+
+            cursor.close();
+        }
     }
 
     public static class ChatsFragment extends Fragment {
@@ -332,19 +363,17 @@ public class MainActivity extends AppCompatActivity {
 
         }
 
-        Context context;
-        ListView chats;
+
         /**
          * Returns a new instance of this fragment for the given section
          * number.
          */
-        public static ChatsFragment newInstance(int sectionNumber, Context ctx, ListView chats) {
+        public static ChatsFragment newInstance(int sectionNumber) {
             ChatsFragment fragment = new ChatsFragment();
             Bundle args = new Bundle();
             args.putInt(ARG_SECTION_NUMBER, sectionNumber);
             fragment.setArguments(args);
-            fragment.context=ctx;
-            fragment.chats=chats;
+
             return fragment;
         }
 
@@ -362,48 +391,65 @@ public class MainActivity extends AppCompatActivity {
 
             SQLiteDatabase db = mDbHelper.getReadableDatabase();
 
-            Set<Integer> messengerIdList=new HashSet<>();
-            Cursor cursor = db.rawQuery("select sender_id from message_info group by sender_id;", null);
-
-
-            while(cursor.moveToNext()) {
-                Integer senderId=cursor.getInt(cursor.getColumnIndexOrThrow(Messages.FeedEntry.sender_id));
-
-                messengerIdList.add(senderId);
-            }
-            cursor.close();
-
-            cursor = db.rawQuery("select receiver_id from message_info group by receiver_id;", null);
-
-            while(cursor.moveToNext()) {
-                Integer receiverId=cursor.getInt(cursor.getColumnIndexOrThrow(Messages.FeedEntry.receiver_id));
-
-                messengerIdList.add(receiverId);
-            }
-            cursor.close();
+//            Set<Integer> messengerIdList=new HashSet<>();
+//            Cursor cursor = db.rawQuery("select sender_id from message_info group by sender_id;", null);
+//
+//
+//            while(cursor.moveToNext()) {
+//                Integer senderId=cursor.getInt(cursor.getColumnIndexOrThrow(Messages.FeedEntry.sender_id));
+//
+//                messengerIdList.add(senderId);
+//            }
+//            cursor.close();
+//
+//            cursor = db.rawQuery("select receiver_id from message_info group by receiver_id;", null);
+//
+//            while(cursor.moveToNext()) {
+//                Integer receiverId=cursor.getInt(cursor.getColumnIndexOrThrow(Messages.FeedEntry.receiver_id));
+//
+//                messengerIdList.add(receiverId);
+//            }
+//            cursor.close();
+//
+//            List<Contact> chatList=new ArrayList<>();
+//            for(Integer i : messengerIdList){
+//
+//                cursor = db.rawQuery("select name, username from contact where id = " + i + ";", null);
+//                cursor.moveToNext();
+//                String name=cursor.getString(cursor.getColumnIndexOrThrow(Contacts.FeedEntry.name));
+//                String username=cursor.getString(cursor.getColumnIndexOrThrow(Contacts.FeedEntry.username));
+//                chatList.add(new Contact(name, username));
+//                cursor.close();
+//            }
 
             List<Contact> chatList=new ArrayList<>();
-            for(Integer i : messengerIdList){
+            Cursor cursor = db.rawQuery("select * from contact order by name asc;", null);
+            while(cursor.moveToNext()) {
+                final String name = cursor.getString(
+                        cursor.getColumnIndexOrThrow(Contacts.FeedEntry.name));
 
-                cursor = db.rawQuery("select name, username from contact where id = " + i + ";", null);
-                cursor.moveToNext();
-                String name=cursor.getString(cursor.getColumnIndexOrThrow(Contacts.FeedEntry.name));
-                String username=cursor.getString(cursor.getColumnIndexOrThrow(Contacts.FeedEntry.username));
+                final String username = cursor.getString(
+                        cursor.getColumnIndexOrThrow(Contacts.FeedEntry.username));
+
                 chatList.add(new Contact(name, username));
-                cursor.close();
             }
 
             // get data from the table by the ListAdapter
             CustomAdapter customAdapter = new CustomAdapter(getContext(), R.layout.contact_list_row, chatList);
+            setAdapter(customAdapter);
 
+            cursor.close();
 
-            chats.setAdapter(customAdapter);
-            chats.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+        }
+        private void setAdapter(CustomAdapter customAdapter){
+            ListView chatsListView=getView().findViewById(R.id.chats_list);
+            chatsListView.setAdapter(customAdapter);
+            chatsListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
 
                     String username=((TextView)((RelativeLayout)((TableRow)((TableLayout)view).getChildAt(0)).getChildAt(0)).getChildAt(1)).getText().toString();
-                    Intent openChatWindow=new Intent(context, ChatWindow.class);
+                    Intent openChatWindow=new Intent(getActivity().getApplicationContext(), ChatWindow.class);
                     openChatWindow.putExtra("username", username);
                     startActivity(openChatWindow);
                 }
@@ -427,10 +473,10 @@ public class MainActivity extends AppCompatActivity {
             // Return a PlaceholderFragment (defined as a static inner class below).
             switch(position){
                 case 0:
-                    return ContactsFragment.newInstance(position + 1, mContext, mContactList);
+                    return ContactsFragment.newInstance(position + 1);
 
                 case 1:
-                    return ChatsFragment.newInstance(position + 1, mContext, mChatsList);
+                    return ChatsFragment.newInstance(position + 1);
 
             }
             return null;

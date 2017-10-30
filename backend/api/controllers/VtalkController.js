@@ -53,7 +53,7 @@ exports.getMessages=function(req, res){
             //pass the object as argument to createTemplate() and send back the return value
             res.status(200).send(JSON.stringify(messages));
 
-            pool.query("DELETE FROM message_cache WHERE id= ($1);", [id], function (err, result) {
+            pool.query(`DELETE FROM message_cache WHERE receiver_id= ${id};`, function (err, result) {
 
                 if (err) {
                     console.log(`delete all messages with receiver_id ${id}`);
@@ -68,8 +68,9 @@ exports.sendMessage=function (req, res) {
     var content=req.body.content;
     var senderId=req.body.senderId;
     var receiverId=req.body.receiverId;
+    var time=req.body.time;
 
-    pool.query("insert into message_cache(content, sender_id, receiver_id) values($1, $2, $3) ;", [content, senderId, receiverId], function (err, result) {
+    pool.query("insert into message_cache(content, sender_id, receiver_id, time_sent) values($1, $2, $3, $4);",[content,senderId,receiverId,time] , function (err, result) {
 
         if (err) {
             res.status(500).send(JSON.stringify(err.toString()));

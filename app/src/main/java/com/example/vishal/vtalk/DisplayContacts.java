@@ -17,7 +17,7 @@ public class DisplayContacts extends AppCompatActivity {
         setContentView(R.layout.activity_display_contacts);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-        mContactList=(ListView)findViewById(R.id.contacts_list);
+        mContactList=(ListView)findViewById(R.id.display_contacts_list);
         List<Contact> contactList;
 
         Intent i = getIntent();
