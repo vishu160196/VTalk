@@ -61,7 +61,7 @@ public class MainActivity extends AppCompatActivity {
     private  ListView mChatsList;
     private int jobId;
 
-    private  Context mContext;
+    private  static Context mContext;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -106,13 +106,13 @@ public class MainActivity extends AppCompatActivity {
         tabLayout.setupWithViewPager(mViewPager);
 
         // fetch new messages from message_info
-        JobInfo.Builder builder = new JobInfo.Builder( ++jobId,
-                new ComponentName( getPackageName(), MessageService.class.getName() ) );
+        //JobInfo.Builder builder = new JobInfo.Builder( ++jobId,
+         //       new ComponentName( getPackageName(), MessageService.class.getName() ) );
 
-        builder.setPeriodic( 5000 );
-        builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY);
+        //builder.setPeriodic( 5000 );
+        //builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY);
 
-        mJobScheduler.schedule( builder.build() );
+        //mJobScheduler.schedule( builder.build() );
     }
 
     private void addContact() {
@@ -237,13 +237,51 @@ public class MainActivity extends AppCompatActivity {
 
 
         // get data from the table by the ListAdapter
+
+
+        customAdapter = new CustomAdapter(getApplicationContext(), R.layout.contact_list_row, contactList);
+        ListView contactListView = (ListView) findViewById(R.id.contacts_list);
         customAdapter.notifyDataSetChanged();
-
-
-
+        contactListView.setAdapter(customAdapter);
         cursor.close();
     }
 
+    private void displayChats(){
+        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+        List<Contact> chatList=new ArrayList<>();
+        Cursor cursor = db.rawQuery("select * from contact order by name asc;", null);
+        while(cursor.moveToNext()) {
+            final String name = cursor.getString(
+                    cursor.getColumnIndexOrThrow(Contacts.FeedEntry.name));
+
+            final String username = cursor.getString(
+                    cursor.getColumnIndexOrThrow(Contacts.FeedEntry.username));
+
+            chatList.add(new Contact(name, username));
+        }
+
+        // get data from the table by the ListAdapter
+        customAdapter = new CustomAdapter(getApplicationContext(), R.layout.contact_list_row, chatList);
+        //ListView chatListView = getView().findViewById(R.id.chats_list);
+        setAdapter(customAdapter);
+
+        cursor.close();
+    }
+    private void setAdapter(CustomAdapter adapter){
+        ListView chatsListView=(ListView) findViewById(R.id.chats_list);
+        adapter.notifyDataSetChanged();
+        chatsListView.setAdapter(adapter);
+        chatsListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+
+                String username=((TextView)((RelativeLayout)((TableRow)((TableLayout)view).getChildAt(0)).getChildAt(0)).getChildAt(1)).getText().toString();
+                Intent openChatWindow=new Intent(getApplicationContext(), ChatWindow.class);
+                openChatWindow.putExtra("username", username);
+                startActivity(openChatWindow);
+            }
+        });
+    }
     public void doPositiveClick(final String name, final String username) {
 
 
@@ -265,6 +303,7 @@ public class MainActivity extends AppCompatActivity {
 
 
                     displayContacts();
+                    displayChats();
 
 
                 }
@@ -435,7 +474,8 @@ Log.d("dbtest", contactList.toString());
             }
 
             // get data from the table by the ListAdapter
-            CustomAdapter customAdapter = new CustomAdapter(getContext(), R.layout.contact_list_row, chatList);
+            customAdapter = new CustomAdapter(getActivity().getApplicationContext(), R.layout.contact_list_row, chatList);
+            //ListView chatListView = getView().findViewById(R.id.chats_list);
             setAdapter(customAdapter);
 
             cursor.close();

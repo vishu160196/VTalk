@@ -127,7 +127,7 @@ public class ChatWindow extends AppCompatActivity implements View.OnClickListene
         SQLiteDatabase db = MainActivity.mDbHelper.getReadableDatabase();
         List<Message> messages = new ArrayList<>();
         Cursor cursor = db.rawQuery("select content, state from message_info where sender_id="+id+" or receiver_id="+id+" order by time " +
-                "desc;", null);
+                "asc;", null);
 
         while(cursor.moveToNext()) {
             String content = cursor.getString(

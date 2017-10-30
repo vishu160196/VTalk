@@ -11,9 +11,14 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Response;
 
 
 /**
@@ -53,6 +58,39 @@ public class LocalMessageService extends JobService{
         protected List<Message> doInBackground(JobParameters... params) {
             this.jobParameters=params[0];
             Log.d("debug","job in bg");
+
+            MessageClient client = LoginActivity.retrofit.create(MessageClient.class);
+            Call<List<MessageResponse>> call = client.getMessages(LoginActivity.userId, LoginActivity.token);
+            Response<List<MessageResponse>> response=null;
+            try{
+                response = call.execute();
+            }catch (IOException e) {
+                e.printStackTrace();
+            }
+            if(response !=null){
+                if(response.isSuccessful()){
+                    // add messages to message_info
+                    List<MessageResponse> message= response.body();
+                    SQLiteDatabase db = MainActivity.mDbHelper.getWritableDatabase();
+                    for(MessageResponse m:message){
+                        try {
+                            db.execSQL("insert into message_info(content, state, sender_id, time) values('" + m.getContent() +
+                                    "', 0, " + m.getSender_id() + ", '" + m.getTime() + "');");
+                        } catch (android.database.sqlite.SQLiteConstraintException e) {
+                            e.printStackTrace();
+                        }
+
+
+                    }
+
+                }
+            }
+
+            else {
+                Toast.makeText(getApplicationContext(), getString(R.string.network_error), Toast.LENGTH_LONG).show();
+            }
+            Log.d("debug2",response.body().toString());
+
             return ChatWindow.getMessagesFromLocalDb();
         }
 
